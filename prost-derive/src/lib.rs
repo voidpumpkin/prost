@@ -50,6 +50,18 @@ fn try_message(input: TokenStream) -> Result<TokenStream, Error> {
         } => (false, Vec::new()),
     };
 
+    //     .flatten()
+    //     .collect();
+    //
+    // self.buf.push_str(&format!(r#"
+    //     impl {} {{
+    //         pub const REQUIRED_FIELDS: [u32; {}] = [{}];
+    //         }}"#,
+    //                            &to_upper_camel(&message_name),
+    //                            &required_fields.len(),
+    //                            &required_fields.iter().map(|i| i.to_string()).join(", ")
+    // ));
+
     let mut next_tag: u32 = 1;
     let mut fields = fields
         .into_iter()
@@ -119,6 +131,15 @@ fn try_message(input: TokenStream) -> Result<TokenStream, Error> {
             },
         }
     });
+
+    let required_fields: Vec<_> = fields
+        .iter()
+        .filter(|(_, field)| field.is_must())
+        .map(|(_, field)| field.tags())
+        .flatten()
+        .collect();
+
+    let required_fields_len = required_fields.len();
 
     let struct_name = if fields.is_empty() {
         quote!()
@@ -215,6 +236,11 @@ fn try_message(input: TokenStream) -> Result<TokenStream, Error> {
 
             fn clear(&mut self) {
                 #(#clear;)*
+            }
+
+            fn required_fields() -> ::core::option::Option<&'static [u32]> {
+                const required_fields: [u32; #required_fields_len] = [#(#required_fields),*];
+                Some(&required_fields)
             }
         }
 

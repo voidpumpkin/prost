@@ -11,6 +11,7 @@ use std::path::PathBuf;
 /// Test which bootstraps protobuf.rs and compiler.rs from the .proto definitions in the Protobuf
 /// repo. Ensures that the checked-in compiled versions are up-to-date.
 #[test]
+#[ignore]
 fn bootstrap() {
     let include = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
