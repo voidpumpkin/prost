@@ -23,7 +23,6 @@ members = [
   "prost-derive",
   "prost-types",
   "protobuf",
-  "prosit-test",
   "tests",
   "tests-2015",
   "tests-no-std",

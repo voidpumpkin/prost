@@ -486,6 +486,8 @@ mod uuid_test {
             ..Default::default()
         };
 
+        check_message(&a);
+        check_message(&b);
         check_serialize_equivalent(&a, &b)
     }
 }

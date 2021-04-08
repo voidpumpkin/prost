@@ -19,7 +19,7 @@ fn main() {
     // which sets the current directory to tests-2015 during build script evaluation.
     let src = PathBuf::from("../tests/src");
     let root = PathBuf::from("..");
-    let includes = &[src.clone(), root.clone()];
+    let includes = &[src.clone(), root];
 
     // Generate BTreeMap fields for all messages. This forces encoded output to be consistent, so
     // that encode/decode roundtrips can use encoded output for comparison. Otherwise trying to
@@ -174,16 +174,7 @@ fn main() {
 
     config.out_dir(&extern_paths);
 
-    // Compile some of the module examples as an extern path. The extern path syntax is edition
-    // specific, since the way crate-internal fully qualified paths has changed.
-    cfg_if! {
-        if #[cfg(feature = "edition-2015")] {
-            const EXTERN_PATH: &str = "::packages::gizmo";
-        } else {
-            const EXTERN_PATH: &str = "crate::packages::gizmo";
-        }
-    };
-    config.extern_path(".packages.gizmo", EXTERN_PATH);
+    config.extern_path(".packages.gizmo", "crate::packages::gizmo");
 
     config
         .compile_protos(
