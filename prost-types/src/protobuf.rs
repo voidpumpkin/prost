@@ -75,6 +75,8 @@ pub struct DescriptorProto {
     #[prost(string, repeated, tag = "10")]
     pub reserved_name: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
+
+
 /// Nested message and enum types in `DescriptorProto`.
 pub mod descriptor_proto {
     #[allow(clippy::derive_partial_eq_without_eq)]
@@ -665,6 +667,9 @@ pub struct MessageOptions {
     /// The parser stores options it doesn't recognize here. See above.
     #[prost(message, repeated, tag = "999")]
     pub uninterpreted_option: ::prost::alloc::vec::Vec<UninterpretedOption>,
+
+    #[prost(message, optional, tag="796112")]
+    pub codegen: ::core::option::Option<RustMessageOptions>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

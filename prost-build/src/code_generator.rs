@@ -211,6 +211,16 @@ impl<'a> CodeGenerator<'a> {
         }
         self.path.pop();
 
+        let oneof_must = if let Some(opts) = &message.options {
+            if let Some(codegen) = &opts.codegen {
+                codegen.oneofs_required.unwrap_or_default()
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
         self.path.push(8);
         for (idx, oneof) in message.oneof_decl.iter().enumerate() {
             let idx = idx as i32;
@@ -221,7 +231,8 @@ impl<'a> CodeGenerator<'a> {
             };
 
             self.path.push(idx);
-            self.append_oneof_field(&message_name, &fq_message_name, oneof, fields);
+
+            self.append_oneof_field(&message_name, &fq_message_name, oneof, fields, oneof_must);
             self.path.pop();
         }
         self.path.pop();
@@ -497,6 +508,7 @@ impl<'a> CodeGenerator<'a> {
         fq_message_name: &str,
         oneof: &OneofDescriptorProto,
         fields: &[(FieldDescriptorProto, usize)],
+        must: bool,
     ) {
         let name = format!(
             "{}::{}",
@@ -505,9 +517,13 @@ impl<'a> CodeGenerator<'a> {
         );
         self.append_doc(fq_message_name, None);
         self.push_indent();
+
+        let label = if must { "must, " } else { "" };
+
         self.buf.push_str(&format!(
-            "#[prost(oneof=\"{}\", tags=\"{}\")]\n",
+            "#[prost(oneof=\"{}\", {} tags=\"{}\")]\n",
             name,
+            label,
             fields
                 .iter()
                 .map(|&(ref field, _)| field.number())
@@ -515,11 +531,17 @@ impl<'a> CodeGenerator<'a> {
         ));
         self.append_field_attributes(fq_message_name, oneof.name());
         self.push_indent();
-        self.buf.push_str(&format!(
-            "pub {}: ::core::option::Option<{}>,\n",
-            to_snake(oneof.name()),
-            name
-        ));
+
+        if must {
+            self.buf
+                .push_str(&format!("pub {}: {},\n", to_snake(oneof.name()), name));
+        } else {
+            self.buf.push_str(&format!(
+                "pub {}: ::core::option::Option<{}>,\n",
+                to_snake(oneof.name()),
+                name
+            ));
+        }
     }
 
     fn append_oneof(
@@ -528,6 +550,7 @@ impl<'a> CodeGenerator<'a> {
         oneof: OneofDescriptorProto,
         idx: i32,
         fields: Vec<(FieldDescriptorProto, usize)>,
+        must: bool,
     ) {
         self.path.push(8);
         self.path.push(idx);
@@ -539,6 +562,11 @@ impl<'a> CodeGenerator<'a> {
         self.append_type_attributes(&oneof_name);
         self.append_enum_attributes(&oneof_name);
         self.push_indent();
+
+        if must {
+            self.buf.push_str("#[allow(non_camel_case_types)]\n")
+        }
+
         self.buf
             .push_str("#[allow(clippy::derive_partial_eq_without_eq)]\n");
         self.buf.push_str(&format!(
@@ -552,6 +580,12 @@ impl<'a> CodeGenerator<'a> {
 
         self.path.push(2);
         self.depth += 1;
+
+        if must {
+            // create the None variant, used for the default impl.
+            self.buf.push_str("#[doc(hidden)]\n__PROSIT_NONE,");
+        }
+
         for (field, idx) in fields {
             let type_ = field.r#type();
 
@@ -604,6 +638,16 @@ impl<'a> CodeGenerator<'a> {
 
         self.push_indent();
         self.buf.push_str("}\n");
+
+        if must {
+            self.buf.push_str(&format!(
+                r"impl ::core::default::Default for {} {{ ",
+                &to_upper_camel(oneof.name())
+            ));
+            self.buf.push_str(&format!(
+                r#"fn default() -> Self {{ Self::__PROSIT_NONE }} }}"#
+            ))
+        }
     }
 
     fn location(&self) -> Option<&Location> {
