@@ -4,29 +4,13 @@
 [![Dependency Status](https://deps.rs/repo/github/tokio-rs/prost/status.svg)](https://deps.rs/repo/github/tokio-rs/prost)
 [![Discord](https://img.shields.io/discord/500028886025895936)](https://discord.gg/tokio)
 
-# *PROST!*
+# PROSIT
 
-`prost` is a [Protocol Buffers](https://developers.google.com/protocol-buffers/)
-implementation for the [Rust Language](https://www.rust-lang.org/). `prost`
-generates simple, idiomatic Rust code from `proto2` and `proto3` files.
+`prosit` is a [Protocol Buffers](https://developers.google.com/protocol-buffers/)
+implementation for the [Rust Language](https://www.rust-lang.org/), based on [`prost`](https://github.com/danburkert/prost).
+`prosit` extends `prost` with different code generation options, adding more idiomatic Rust types according to the [`parse, don't validate`](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) philosophy.
 
-Compared to other Protocol Buffers implementations, `prost`
-
-* Generates simple, idiomatic, and readable Rust types by taking advantage of
-  Rust `derive` attributes.
-* Retains comments from `.proto` files in generated Rust code.
-* Allows existing Rust types (not generated from a `.proto`) to be serialized
-  and deserialized by adding attributes.
-* Uses the [`bytes::{Buf, BufMut}`](https://github.com/carllerche/bytes)
-  abstractions for serialization instead of `std::io::{Read, Write}`.
-* Respects the Protobuf `package` specifier when organizing generated code
-  into Rust modules.
-* Preserves unknown enum values during deserialization.
-* Does not include support for runtime reflection or message descriptors.
-
-## Using `prost` in a Cargo Project
-
-First, add `prost` and its public dependencies to your `Cargo.toml`:
+To add prosit to your project as an alternative code generator, use the patch feature of cargo, and use prost inside your codebase.
 
 ```ignore
 [dependencies]
@@ -35,9 +19,7 @@ prost = "0.11"
 prost-types = "0.11"
 ```
 
-The recommended way to add `.proto` compilation to a Cargo project is to use the
-`prost-build` library. See the [`prost-build` documentation](prost-build) for
-more details and examples.
+Once prosit exits experimental stage, it will be published on Cargo, but hopefully as an extension to `prost`
 
 See the [snazzy repository](https://github.com/danburkert/snazzy) for a simple
 start-to-finish example.
@@ -63,7 +45,6 @@ bundled a `protoc` or attempt to compile `protoc` for users. For install
 instructions for `protoc` please check out the [protobuf install] instructions.
 
 [protobuf install]: https://github.com/protocolbuffers/protobuf#protocol-compiler-installation
-
 
 ### Packages
 
@@ -108,22 +89,22 @@ corresponding type.
 Scalar value types are converted as follows:
 
 | Protobuf Type | Rust Type |
-| --- | --- |
-| `double` | `f64` |
-| `float` | `f32` |
-| `int32` | `i32` |
-| `int64` | `i64` |
-| `uint32` | `u32` |
-| `uint64` | `u64` |
-| `sint32` | `i32` |
-| `sint64` | `i64` |
-| `fixed32` | `u32` |
-| `fixed64` | `u64` |
-| `sfixed32` | `i32` |
-| `sfixed64` | `i64` |
-| `bool` | `bool` |
-| `string` | `String` |
-| `bytes` | `Vec<u8>` |
+| ------------- | --------- |
+| `double`      | `f64`     |
+| `float`       | `f32`     |
+| `int32`       | `i32`     |
+| `int64`       | `i64`     |
+| `uint32`      | `u32`     |
+| `uint64`      | `u64`     |
+| `sint32`      | `i32`     |
+| `sint64`      | `i64`     |
+| `fixed32`     | `u32`     |
+| `fixed64`     | `u64`     |
+| `sfixed32`    | `i32`     |
+| `sfixed64`    | `i64`     |
+| `bool`        | `bool`    |
+| `string`      | `String`  |
+| `bytes`       | `Vec<u8>` |
 
 #### Enumerations
 
@@ -222,13 +203,13 @@ Protobuf scalar value and enumeration message fields can have a modifier
 depending on the Protobuf version. Modifiers change the corresponding type of
 the Rust field:
 
-| `.proto` Version | Modifier | Rust Type |
-| --- | --- | --- |
-| `proto2` | `optional` | `Option<T>` |
-| `proto2` | `required` | `T` |
-| `proto3` | default | `T` for scalar types, `Option<T>` otherwise |
-| `proto3` | `optional` | `Option<T>` |
-| `proto2`/`proto3` | `repeated` | `Vec<T>` |
+| `.proto` Version  | Modifier   | Rust Type                                   |
+| ----------------- | ---------- | ------------------------------------------- |
+| `proto2`          | `optional` | `Option<T>`                                 |
+| `proto2`          | `required` | `T`                                         |
+| `proto3`          | default    | `T` for scalar types, `Option<T>` otherwise |
+| `proto3`          | `optional` | `Option<T>`                                 |
+| `proto2`/`proto3` | `repeated` | `Vec<T>`                                    |
 
 Note that in `proto3` the default representation for all user-defined message
 types is `Option<T>`, and for scalar types just `T` (during decoding, a missing
@@ -296,34 +277,31 @@ Example `.proto` file:
 
 ```protobuf,ignore
 syntax = "proto3";
-package tutorial;
 
-message Person {
-  string name = 1;
-  int32 id = 2;  // Unique ID number for this person.
-  string email = 3;
+package proto.api.v1;
 
-  enum PhoneType {
-    MOBILE = 0;
-    HOME = 1;
-    WORK = 2;
+import "api/rust.proto";
+
+message Data {
+  // generates the Uuid type instead of the string type
+  string id = 1 [(rust.codegen).type = UUID];
+
+  // does not wrap Foo in an option, but instead errors during parsing if foo is missing.
+  Foo foo = 2 [(rust.codegen).required = true];
+
+message Foo {
+  // either one of the oneof messages has to be present in the message. Protobuf does not define attributes
+  // on oneoffs, so this is message level.
+  option (rust.message).oneofs_required = true;
+
+  oneof biz {
+    string bar = 1;
+    string bax = 2;
   }
-
-  message PhoneNumber {
-    string number = 1;
-    PhoneType type = 2;
-  }
-
-  repeated PhoneNumber phones = 4;
-}
-
-// Our address book file is just one of these.
-message AddressBook {
-  repeated Person people = 1;
 }
 ```
 
-and the generated Rust code (`tutorial.rs`):
+This wil generate approximately the following code:
 
 ```rust,ignore
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -338,28 +316,14 @@ pub struct Person {
     #[prost(message, repeated, tag="4")]
     pub phones: ::prost::alloc::vec::Vec<person::PhoneNumber>,
 }
-/// Nested message and enum types in `Person`.
-pub mod person {
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct PhoneNumber {
-        #[prost(string, tag="1")]
-        pub number: ::prost::alloc::string::String,
-        #[prost(enumeration="PhoneType", tag="2")]
-        pub r#type: i32,
-    }
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum PhoneType {
-        Mobile = 0,
-        Home = 1,
-        Work = 2,
-    }
+
+pub struct Foo {
+  biz: Biz,
 }
-/// Our address book file is just one of these.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AddressBook {
-    #[prost(message, repeated, tag="1")]
-    pub people: ::prost::alloc::vec::Vec<Person>,
+
+pub enum Biz {
+  Bar(String),
+  Baz(String),
 }
 ```
 
@@ -460,35 +424,34 @@ The prost project maintains flakes support for local development. Once you have
 nix and nix flakes setup you can just run `nix develop` to get a shell
 configured with the required dependencies to compile the whole project.
 
-
 ## FAQ
 
 1. **Could `prost` be implemented as a serializer for [Serde](https://serde.rs/)?**
 
-  Probably not, however I would like to hear from a Serde expert on the matter.
-  There are two complications with trying to serialize Protobuf messages with
-  Serde:
+Probably not, however I would like to hear from a Serde expert on the matter.
+There are two complications with trying to serialize Protobuf messages with
+Serde:
 
-  - Protobuf fields require a numbered tag, and currently there appears to be no
-    mechanism suitable for this in `serde`.
-  - The mapping of Protobuf type to Rust type is not 1-to-1. As a result,
-    trait-based approaches to dispatching don't work very well. Example: six
-    different Protobuf field types correspond to a Rust `Vec<i32>`: `repeated
-    int32`, `repeated sint32`, `repeated sfixed32`, and their packed
-    counterparts.
+- Protobuf fields require a numbered tag, and currently there appears to be no
+  mechanism suitable for this in `serde`.
+- The mapping of Protobuf type to Rust type is not 1-to-1. As a result,
+  trait-based approaches to dispatching don't work very well. Example: six
+  different Protobuf field types correspond to a Rust `Vec<i32>`: `repeated
+int32`, `repeated sint32`, `repeated sfixed32`, and their packed
+  counterparts.
 
-  But it is possible to place `serde` derive tags onto the generated types, so
-  the same structure can support both `prost` and `Serde`.
+But it is possible to place `serde` derive tags onto the generated types, so
+the same structure can support both `prost` and `Serde`.
 
 2. **I get errors when trying to run `cargo test` on MacOS**
 
-  If the errors are about missing `autoreconf` or similar, you can probably fix
-  them by running
+If the errors are about missing `autoreconf` or similar, you can probably fix
+them by running
 
-  ```ignore
-  brew install automake
-  brew install libtool
-  ```
+```ignore
+brew install automake
+brew install libtool
+```
 
 ## License
 
