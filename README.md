@@ -295,6 +295,8 @@ message Foo {
   option (rust.message).oneofs_required = true;
 
   oneof biz {
+    option (rust.required) = true;
+
     string bar = 1;
     string bax = 2;
   }
