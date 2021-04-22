@@ -50,6 +50,7 @@ std = []
 bytes = { version = "1", default-features = false }
 prost-derive = { version = "0.11.8", path = "prost-derive", optional = true }
 uuid = "0.8"
+url = "2"
 
 [dev-dependencies]
 criterion = { version = "0.4", default-features = false }
