@@ -211,16 +211,6 @@ impl<'a> CodeGenerator<'a> {
         }
         self.path.pop();
 
-        let oneof_must = if let Some(opts) = &message.options {
-            if let Some(codegen) = &opts.codegen {
-                codegen.oneofs_required.unwrap_or_default()
-            } else {
-                false
-            }
-        } else {
-            false
-        };
-
         self.path.push(8);
         for (idx, oneof) in message.oneof_decl.iter().enumerate() {
             let idx = idx as i32;
@@ -232,7 +222,7 @@ impl<'a> CodeGenerator<'a> {
 
             self.path.push(idx);
 
-            self.append_oneof_field(&message_name, &fq_message_name, oneof, fields, oneof_must);
+            self.append_oneof_field(&message_name, &fq_message_name, oneof, fields);
             self.path.pop();
         }
         self.path.pop();
@@ -504,7 +494,6 @@ impl<'a> CodeGenerator<'a> {
         fq_message_name: &str,
         oneof: &OneofDescriptorProto,
         fields: &[(FieldDescriptorProto, usize)],
-        must: bool,
     ) {
         let name = format!(
             "{}::{}",
@@ -513,6 +502,12 @@ impl<'a> CodeGenerator<'a> {
         );
         self.append_doc(fq_message_name, None);
         self.push_indent();
+
+        let must = if let Some(opt) = &oneof.options {
+            opt.required.unwrap_or_default()
+        } else {
+            false
+        };
 
         let label = if must { "must, " } else { "" };
 
@@ -546,13 +541,18 @@ impl<'a> CodeGenerator<'a> {
         oneof: OneofDescriptorProto,
         idx: i32,
         fields: Vec<(FieldDescriptorProto, usize)>,
-        must: bool,
     ) {
         self.path.push(8);
         self.path.push(idx);
         self.append_doc(fq_message_name, None);
         self.path.pop();
         self.path.pop();
+
+        let must = if let Some(opt) = &oneof.options {
+            opt.required.unwrap_or_default()
+        } else {
+            false
+        };
 
         let oneof_name = format!("{}.{}", fq_message_name, oneof.name());
         self.append_type_attributes(&oneof_name);
