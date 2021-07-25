@@ -1,0 +1,26 @@
+// Copy of rust.proto from the repo root
+
+syntax = "proto3";
+
+package rust;
+
+import "google/protobuf/descriptor.proto";
+
+enum RustLibraryTypes {
+  RS_DEFAULT = 0;
+  UUID = 1;
+  URL = 2;
+}
+
+extend google.protobuf.OneofOptions {
+  bool required = 796112;
+}
+
+extend google.protobuf.FieldOptions {
+  RustFieldRules codegen = 796111;
+}
+
+message RustFieldRules {
+  RustLibraryTypes type = 1;
+  bool required = 2;
+}
