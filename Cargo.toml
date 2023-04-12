@@ -24,8 +24,6 @@ members = [
   "prost-types",
   "protobuf",
   "tests",
-  "tests-2015",
-  "tests-no-std",
   "tests/single-include",
 ]
 

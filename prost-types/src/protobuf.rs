@@ -75,8 +75,6 @@ pub struct DescriptorProto {
     #[prost(string, repeated, tag = "10")]
     pub reserved_name: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-
-
 /// Nested message and enum types in `DescriptorProto`.
 pub mod descriptor_proto {
     #[allow(clippy::derive_partial_eq_without_eq)]
@@ -669,7 +667,7 @@ pub struct MessageOptions {
     pub uninterpreted_option: ::prost::alloc::vec::Vec<UninterpretedOption>,
 
     #[prost(message, optional, tag="796112")]
-    pub codegen: ::core::option::Option<RustMessageOptions>,
+    pub codegen: ::core::option::Option<RustCodeGen>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

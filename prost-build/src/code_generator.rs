@@ -221,7 +221,6 @@ impl<'a> CodeGenerator<'a> {
             };
 
             self.path.push(idx);
-
             self.append_oneof_field(&message_name, &fq_message_name, oneof, fields);
             self.path.pop();
         }
@@ -327,6 +326,7 @@ impl<'a> CodeGenerator<'a> {
             ty,
             boxed
         );
+
         self.append_doc(fq_message_name, Some(field.name()));
 
         if deprecated {

@@ -1101,8 +1101,6 @@ impl Config {
 
         dbg!(&file_descriptor_set);
 
-        dbg!(&file_descriptor_set);
-
         self.compile_fds(file_descriptor_set)
     }
 

@@ -6,6 +6,7 @@ extern crate alloc;
 extern crate proc_macro;
 
 use anyhow::{bail, Error};
+use itertools::Itertools;
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
@@ -475,47 +476,61 @@ fn try_oneof(input: TokenStream) -> Result<TokenStream, Error> {
         })
     });
 
-    let expanded = quote! {
-        impl #impl_generics #ident #ty_generics #where_clause {
-            /// Encodes the message to a buffer.
-            pub fn encode<B>(&self, buf: &mut B) where B: ::prost::bytes::BufMut {
-                match *self {
-                    #(#encode,)*
+    let expanded = if oneof_must {
+        quote! {
+            impl #impl_generics #ident #ty_generics #where_clause {
+                /// Encodes the message to a buffer.
+                pub fn encode<B>(&self, buf: &mut B) where B: ::prost::bytes::BufMut {
+                    match *self {
+                        #(#encode,)*
+                        _ => panic!("Invalid enum variant (do not use __PROSIT_NONE)"),
+                    }
+                }
+
+                /// Decodes an instance of the message from a buffer, and merges it into self.
+                pub fn merge<B>(
+                    field: &mut #ident #ty_generics,
+                    tag: u32,
+                    wire_type: ::prost::encoding::WireType,
+                    buf: &mut B,
+                    ctx: ::prost::encoding::DecodeContext,
+                ) -> ::core::result::Result<(), ::prost::DecodeError>
+                where B: ::prost::bytes::Buf {
+                    match tag {
+                        #(#merge,)*
+                        _ => unreachable!(concat!("invalid ", stringify!(#ident), " tag: {}"), tag),
+                    }
+                }
+
+                #[inline]
+                pub fn encoded_len(&self) -> usize {
+                    match *self {
+                        #(#encoded_len,)*
+                        _ => unreachable!(concat!("invalid ", stringify!(#ident), "(do not use __PROSIT_NONE)")),
+                    }
                 }
             }
 
-            /// Decodes an instance of the message from a buffer, and merges it into self.
-            pub fn merge<B>(
-                field: &mut ::core::option::Option<#ident #ty_generics>,
-                tag: u32,
-                wire_type: ::prost::encoding::WireType,
-                buf: &mut B,
-                ctx: ::prost::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), ::prost::DecodeError>
-            where B: ::prost::bytes::Buf {
-                match tag {
-                    #(#merge,)*
-                    _ => unreachable!(concat!("invalid ", stringify!(#ident), " tag: {}"), tag),
-                }
-            }
-
-            /// Returns the encoded length of the message without a length delimiter.
-            #[inline]
-            pub fn encoded_len(&self) -> usize {
-                match *self {
-                    #(#encoded_len,)*
+            impl #impl_generics ::core::fmt::Debug for #ident #ty_generics #where_clause {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+                    match *self {
+                        #(#debug,)*
+                        #ident::__PROSIT_NONE => write!(f, "__PROSIT_NONE"),
+                    }
                 }
             }
         }
     } else {
         quote! {
             impl #impl_generics #ident #ty_generics #where_clause {
+                /// Encodes the message to a buffer.
                 pub fn encode<B>(&self, buf: &mut B) where B: ::prost::bytes::BufMut {
                     match *self {
                         #(#encode,)*
                     }
                 }
 
+                /// Decodes an instance of the message from a buffer, and merges it into self.
                 pub fn merge<B>(
                     field: &mut ::core::option::Option<#ident #ty_generics>,
                     tag: u32,
@@ -530,6 +545,7 @@ fn try_oneof(input: TokenStream) -> Result<TokenStream, Error> {
                     }
                 }
 
+                /// Returns the encoded length of the message without a length delimiter.
                 #[inline]
                 pub fn encoded_len(&self) -> usize {
                     match *self {
