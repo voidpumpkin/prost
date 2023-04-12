@@ -913,6 +913,18 @@ impl<'a> CodeGenerator<'a> {
     fn resolve_type(&self, field: &FieldDescriptorProto, fq_message_name: &str) -> String {
         let prost_path = self.config.prost_path.as_deref().unwrap_or("::prost");
 
+        if let Some(opts) = &field.options {
+            if let Some(opts) = &opts.codegen {
+                if let Some(i) = opts.r#type {
+                    match RustTypes::from_i32(i).expect("unknown RustTypes enum variant") {
+                        RustTypes::Uuid => return String::from("::uuid::Uuid"),
+                        RustTypes::Url => return String::from("::url::Url"),
+                        RustTypes::Default => (),
+                    };
+                };
+            };
+        };
+
         match field.r#type() {
             Type::Float => String::from("f32"),
             Type::Double => String::from("f64"),
